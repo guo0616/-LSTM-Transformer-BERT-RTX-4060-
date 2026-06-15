@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>深度学习序列模型对比分析系统</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; padding-top: 50px; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 600px; }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; resize: none; font-size: 16px; box-sizing: border-box; }
+        .controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
+        select { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 16px; outline: none; }
+        button { background-color: #2b2b2b; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; transition: background 0.3s; }
+        button:hover { background-color: #444; }
+        #result-box { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; text-align: center; font-weight: bold; font-size: 18px; }
+        .positive { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .negative { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>IMDB 电影情感分析平台</h2>
+    <textarea id="review-text" placeholder="请输入一段英文电影评论，例如：This movie is absolutely fantastic!"></textarea>
+
+    <div class="controls">
+        <select id="model-selector">
+            <option value="BERT">使用 BERT 模型 (精度高)</option>
+            <option value="BiLSTM">使用 BiLSTM 模型 (速度快)</option>
+        </select>
+        <button onclick="analyzeSentiment()">开始分析</button>
+    </div>
+
+    <div id="result-box">
+        <div id="sentiment-text"></div>
+        <div id="confidence-text" style="font-size: 14px; margin-top: 5px; color: #555;"></div>
+    </div>
+</div>
+
+<script>
+    async function analyzeSentiment() {
+        const text = document.getElementById('review-text').value;
+        const model = document.getElementById('model-selector').value;
+        const resultBox = document.getElementById('result-box');
+
+        if (!text.trim()) {
+            alert("请先输入评论！");
+            return;
+        }
+
+        resultBox.style.display = 'block';
+        resultBox.className = '';
+        document.getElementById('sentiment-text').innerText = "模型推理中，请稍候...";
+        document.getElementById('confidence-text').innerText = "";
+
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text, model: model })
+            });
+            const data = await response.json();
+
+            if (data.error) {
+                document.getElementById('sentiment-text').innerText = "错误: " + data.error;
+                return;
+            }
+
+            // 根据积极还是消极改变背景色
+            if (data.sentiment.includes("Positive")) {
+                resultBox.className = 'positive';
+            } else {
+                resultBox.className = 'negative';
+            }
+
+            document.getElementById('sentiment-text').innerText = "预测结果: " + data.sentiment;
+            document.getElementById('confidence-text').innerText = "模型置信度: " + data.confidence;
+
+        } catch (error) {
+            document.getElementById('sentiment-text').innerText = "请求失败，请检查后端是否运行。";
+        }
+    }
+</script>
+
+</body>
+</html>
